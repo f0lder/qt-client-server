@@ -1,0 +1,119 @@
+name: Release Windows and Linux
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build_windows:
+    runs-on: windows-latest
+    outputs:
+      win_zip: ${{ steps.win_zip.outputs.win_zip }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: '6.6.0'
+          arch: win64_mingw
+
+      - name: Build Windows binaries
+        run: |
+          cmake -B build -G "MinGW Makefiles"
+          cmake --build build
+
+      - name: Deploy Qt dependencies (windeployqt)
+        run: |
+          $env:Path += ";$Env:Qt6_DIR/bin"
+          & "$Env:Qt6_DIR/bin/windeployqt.exe" bin\MyQtApp.exe
+          & "$Env:Qt6_DIR/bin/windeployqt.exe" bin\ChatServer.exe
+
+      - name: Zip Windows deployment
+        id: win_zip
+        run: |
+          Compress-Archive -Path bin\*,*.dll,*.exe -DestinationPath windows-deploy.zip
+          echo "::set-output name=win_zip::windows-deploy.zip"
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-deploy
+          path: windows-deploy.zip
+
+  build_linux:
+    runs-on: ubuntu-latest
+    needs: build_windows
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install Qt and dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qt6-base-dev qt6-base-dev-tools cmake g++ wget patchelf zip
+
+      - name: Build Linux binaries
+        run: |
+          cmake -B build
+          cmake --build build
+
+      - name: Download linuxdeployqt
+        run: |
+          wget -O linuxdeployqt https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage
+          chmod +x linuxdeployqt
+
+      - name: Bundle MyQtApp as AppImage
+        run: |
+          ./linuxdeployqt bin/MyQtApp -appimage || true
+
+      - name: Bundle ChatServer as AppImage
+        run: |
+          ./linuxdeployqt bin/ChatServer -appimage || true
+
+      - name: Zip Linux deployment
+        run: |
+          zip -r linux-deploy.zip bin/ *.AppImage
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-deploy
+          path: .
+
+      - name: Create or Update Release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          draft: false
+          prerelease: false
+          release_name: Release ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Linux artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: linux-deploy.zip
+          asset_name: linux-deploy.zip
+          asset_content_type: application/zip
+
+      - name: Upload Windows artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: windows-deploy.zip
+          asset_name: windows-deploy.zip
+          asset_content_type: application/zip
