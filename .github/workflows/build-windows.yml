@@ -19,7 +19,7 @@ jobs:
           arch: win64_mingw
 
       - name: Install CMake
-        uses: lukka/get-cmake@v4
+        uses: lukka/get-cmake@vlatest
 
       - name: Build
         run: |
