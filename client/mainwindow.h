@@ -6,6 +6,8 @@
 #include <QPushButton>
 #include <QTcpSocket>
 #include <QVBoxLayout>
+#include <QListWidget>
+#include "../message.h"
 
 class MainWindow : public QMainWindow
 {
@@ -26,4 +28,8 @@ private:
     QLineEdit *messageInput;
     QPushButton *sendButton;
     QTcpSocket *socket;
+    QPushButton *clearChatButton;
+    QString username;
+    QListWidget* userList;
+    bool isConnectedToChat = false;
 };
