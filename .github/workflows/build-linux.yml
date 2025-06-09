@@ -1,0 +1,46 @@
+name: Build and Deploy Linux
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Qt and dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qt6-base-dev qt6-base-dev-tools cmake g++ wget
+
+      - name: Build
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+          make
+
+      - name: Download linuxdeployqt
+        run: |
+          wget -O linuxdeployqt https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage
+          chmod +x linuxdeployqt
+
+      - name: Bundle MyQtApp as AppImage
+        run: |
+          cd build
+          ../linuxdeployqt ./MyQtApp -appimage
+
+      - name: Bundle ChatServer as AppImage
+        run: |
+          cd build
+          ../linuxdeployqt ./ChatServer -appimage
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-appimages
+          path: build/*.AppImage
