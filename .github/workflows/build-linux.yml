@@ -37,11 +37,11 @@ jobs:
 
       - name: Zip deployment folder
         run: |
-          zip -r deploy.zip bin/ *.AppImage
+          zip -r deploy-linux.zip bin/ *.AppImage
 
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v2
         with:
-          files: deploy.zip
+          files: deploy-linux.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
