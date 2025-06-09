@@ -15,14 +15,12 @@ jobs:
       - name: Install Qt and dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y qt6-base-dev qt6-base-dev-tools cmake g++ wget
+          sudo apt-get install -y qt6-base-dev qt6-base-dev-tools cmake g++ wget patchelf
 
       - name: Build
         run: |
-          mkdir build
-          cd build
-          cmake ..
-          make
+          cmake -B build
+          cmake --build build
 
       - name: Download linuxdeployqt
         run: |
@@ -31,16 +29,20 @@ jobs:
 
       - name: Bundle MyQtApp as AppImage
         run: |
-          cd build
-          ../linuxdeployqt ./MyQtApp -appimage
+          ./linuxdeployqt bin/MyQtApp -appimage
 
       - name: Bundle ChatServer as AppImage
         run: |
-          cd build
-          ../linuxdeployqt ./ChatServer -appimage
+          ./linuxdeployqt bin/ChatServer -appimage
+
+      - name: Zip deployment folder
+        run: |
+          zip -r chat-linux-deploy.zip bin/
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: linux-appimages
-          path: build/*.AppImage
+          name: linux-deploy
+          path: |
+            *.AppImage
+            chat-linux-deploy.zip
