@@ -137,6 +137,13 @@ void MainWindow::onSendClicked()
         messageInput->clear();
         return;
     }
+    // Unknown client-side command (starts with / but not recognized)
+    if (messageText.startsWith('/'))
+    {
+        chatBox->append(QString("<i>Unknown command: %1</i>").arg(messageText.toHtmlEscaped()));
+        messageInput->clear();
+        return;
+    }
 
     // All other messages (including /something) go to the server
     Message msg(username, messageText, Message::Text);
@@ -190,8 +197,24 @@ void MainWindow::onReadyRead()
         }
         else
         {
-            chatBox->append("[" + msg.timestamp.toString("hh:mm:ss") + "] " + msg.username + ": " + msg.text);
+            chatBox->append("[" + msg.timestamp.toString("hh:mm:ss") + "] " + msg.username + ": " + sanitizeHtml(msg.text));
         }
         buffer = buffer.mid(4 + msgSize);
     }
+}
+
+// Allow only <b>, <i>, <u>, <br> tags
+QString MainWindow::sanitizeHtml(const QString& input) {
+    QString safe = input.toHtmlEscaped();
+
+    // Unescape allowed tags
+    safe.replace("&lt;b&gt;", "<b>", Qt::CaseInsensitive);
+    safe.replace("&lt;/b&gt;", "</b>", Qt::CaseInsensitive);
+    safe.replace("&lt;i&gt;", "<i>", Qt::CaseInsensitive);
+    safe.replace("&lt;/i&gt;", "</i>", Qt::CaseInsensitive);
+    safe.replace("&lt;u&gt;", "<u>", Qt::CaseInsensitive);
+    safe.replace("&lt;/u&gt;", "</u>", Qt::CaseInsensitive);
+    safe.replace("&lt;br&gt;", "<br>", Qt::CaseInsensitive);
+
+    return safe;
 }

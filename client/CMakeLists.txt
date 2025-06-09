@@ -11,8 +11,8 @@ set(CMAKE_AUTOMOC ON)
 # Find Qt packages
 find_package(Qt6 REQUIRED COMPONENTS Widgets Network)
 
-# Add executable
-add_executable(MyQtApp
+# Add executable using the WIN32 option to create a GUI application without a console window
+add_executable(MyQtApp WIN32
     main.cpp
     mainwindow.cpp
     mainwindow.h

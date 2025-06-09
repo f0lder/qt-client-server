@@ -21,6 +21,7 @@ public:
 private slots:
     void onSendClicked();
     void onReadyRead();
+    QString sanitizeHtml(const QString& input);
 
 private:
     QWidget *centralWidget;
