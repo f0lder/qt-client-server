@@ -8,6 +8,8 @@
 #include <QVBoxLayout>
 #include <QListWidget>
 #include <QLabel>
+#include <QIcon>
+#include <QTimer>
 #include "../message.h"
 
 class MainWindow : public QMainWindow
@@ -35,4 +37,7 @@ private:
     QListWidget* userList;
     QLabel *typingLabel;
     bool isConnectedToChat = false;
+    QIcon statusIcon(const QColor &color);
+    QTimer *typingResetTimer;
+    QTimer *afkTimer;
 };

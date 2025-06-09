@@ -11,7 +11,8 @@ public:
         Registration = 1,
         Command = 2,
         System = 3,
-        Typing = 4
+        Typing = 4,
+        Status = 5
     };
 
     QString username;

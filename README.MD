@@ -7,7 +7,7 @@ Aplicația permite mai multor utilizatori să comunice în timp real, să vadă 
 
 ## Pentru binare precompilate
 
-Binare precompilate sunt in tabul de Actions pentru Windows si Linux
+Binare precompilate pentru Windows si Linux se gasesc in tabul Releases, create automat prin tag-uri
 
 __
 ## Cum a fost creat proiectul
@@ -16,9 +16,10 @@ Proiectul a fost dezvoltat pornind de la zero, folosind Qt Creator și CMake pen
 S-au folosit clasele Qt pentru interfață grafică (QWidget, QMainWindow, QVBoxLayout, etc.), pentru rețea (QTcpSocket, QTcpServer) și pentru serializarea mesajelor (QDataStream).
 
 Funcționalitățile principale au fost implementate incremental:
-- **Inițial:** conectare client-server, trimitere și afișare mesaje text.
-- **Apoi:** autentificare cu username, afișare listă utilizatori online, sistem de comenzi locale (/help, /clear).
-- **Ulterior:** indicator de typing, validare și filtrare HTML, sistem de tipuri de mesaje (text, sistem, typing, etc.).
+- Conectare client-server, trimitere și afișare mesaje text.
+- Autentificare cu username, afișare listă utilizatori online, sistem de comenzi locale (/help, /clear).
+- Indicator de typing, validare și filtrare HTML, sistem de tipuri de mesaje (text, sistem, typing, etc.).
+- Indicator daca user-ul este online / AFK sau scrie un mesaj.
 
 ---
 
@@ -32,6 +33,7 @@ Funcționalitățile principale au fost implementate incremental:
 - Suportă indicator de typing ("X is typing...").
 - Permite doar anumite tag-uri HTML sigure în mesaje (`<b>`, `<i>`, `<u>`, `<br>`).
 - Serverul gestionează conectarea/deconectarea și transmite mesajele tuturor clienților.
+
 
 ---
 

@@ -14,6 +14,7 @@ ChatServer::ChatServer(QObject *parent) : QTcpServer(parent)
 
 // Track usernames for each client
 static QMap<QTcpSocket *, QString> usernames;
+static QMap<QTcpSocket *, QString> userStatus; // "online", "afk", "typing"
 
 void ChatServer::incomingConnection(qintptr socketDescriptor)
 {
@@ -27,6 +28,7 @@ void ChatServer::incomingConnection(qintptr socketDescriptor)
         clients.removeAll(clientSocket);
         bool wasRegistered = usernames.contains(clientSocket);
         usernames.remove(clientSocket);
+        userStatus.remove(clientSocket);
 
         // Send "user disconnects" system message to all clients if registered
         if (wasRegistered) {
@@ -55,16 +57,18 @@ void ChatServer::incomingConnection(qintptr socketDescriptor)
 // Helper to broadcast the user list to all clients
 void ChatServer::broadcastUserList()
 {
-    QStringList userNames;
+    QStringList userEntries;
     for (QTcpSocket *c : clients)
     {
-        if (usernames.contains(c))
-            userNames << usernames.value(c, "Anonymous");
+        if (usernames.contains(c)) {
+            QString status = userStatus.value(c, "online");
+            userEntries << QString("%1|%2").arg(usernames.value(c, "Anonymous"), status);
+        }
     }
     Message userListMsg;
     userListMsg.type = Message::System;
     userListMsg.username = "System";
-    userListMsg.text = "USERLIST|" + userNames.join(",");
+    userListMsg.text = "USERLIST|" + userEntries.join(",");
     userListMsg.timestamp = QDateTime::currentDateTime();
 
     QByteArray data = userListMsg.toBinary();
@@ -73,7 +77,7 @@ void ChatServer::broadcastUserList()
     out << (quint32)data.size();
     packet.append(data);
     sendToAllClients(packet);
-    qDebug() << "[Server] Broadcasted user list:" << userNames;
+    qDebug() << "[Server] Broadcasted user list:" << userEntries;
 }
 
 void ChatServer::readClient()
@@ -120,6 +124,7 @@ void ChatServer::readClient()
             if (msg.type == Message::Registration)
             {
                 usernames[client] = msg.username;
+                userStatus[client] = "online";
                 qDebug() << "[Server] Registered new user:" << msg.username;
 
                 // Send "user connects" system message to all clients
@@ -151,6 +156,8 @@ void ChatServer::readClient()
         if (msg.type == Message::Text)
         {
             qDebug() << "[Server] Received message from" << msg.username << ":" << msg.text;
+            userStatus[client] = "online";
+            broadcastUserList();
 
             QByteArray packet;
             QDataStream out(&packet, QIODevice::WriteOnly);
@@ -161,10 +168,16 @@ void ChatServer::readClient()
         else if (msg.type == Message::Typing)
         {
             qDebug() << "[Server] Typing notification from" << msg.username;
+            userStatus[client] = "typing";
+            broadcastUserList();
+
+            // Prepare the typing message packet
+            QByteArray typingData = msgData;
             QByteArray packet;
             QDataStream out(&packet, QIODevice::WriteOnly);
-            out << (quint32)msgData.size();
-            packet.append(msgData);
+            out << (quint32)typingData.size();
+            packet.append(typingData);
+
             // Broadcast to all except the sender
             for (QTcpSocket *c : clients)
             {
@@ -173,6 +186,15 @@ void ChatServer::readClient()
                     c->write(packet);
                 }
             }
+            buffers[client] = buffers[client].mid(4 + msgSize);
+            continue;
+        }
+        else if (msg.type == Message::Status)
+        {
+            qDebug() << "[Server] Status update from" << msg.username << ":" << msg.text;
+            userStatus[client] = msg.text; // "online", "afk", etc.
+            broadcastUserList();
+            // No need to forward this message to other clients directly
             buffers[client] = buffers[client].mid(4 + msgSize);
             continue;
         }

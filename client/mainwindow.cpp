@@ -5,7 +5,9 @@
 #include <QDialogButtonBox>
 #include <QDebug>
 #include <QTimer>
-
+#include <QPixmap>
+#include <QPainter>
+#include <QColor>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), socket(new QTcpSocket(this)), isConnectedToChat(false)
@@ -97,7 +99,7 @@ MainWindow::MainWindow(QWidget *parent)
     // Handle typing indication
     connect(messageInput, &QLineEdit::textEdited, this, [this](const QString &text)
             {
-        if (text.startsWith('/')) return; // Don't send typing for commands
+        if (text.startsWith('/')) return;
         if (socket->state() == QAbstractSocket::ConnectedState) {
             Message typingMsg(username, "", Message::Typing);
             QByteArray data = typingMsg.toBinary();
@@ -107,10 +109,47 @@ MainWindow::MainWindow(QWidget *parent)
             packet.append(data);
             socket->write(packet);
             socket->flush();
-        } });
+        }
+        typingResetTimer->start(2000); // 2 seconds after last keypress
+        afkTimer->start(60000); // 60 seconds after last activity
+    });
 
     typingLabel = new QLabel(this);
     leftLayout->addWidget(typingLabel);
+
+    typingResetTimer = new QTimer(this);
+    typingResetTimer->setSingleShot(true);
+    connect(typingResetTimer, &QTimer::timeout, this, [this]() {
+        // Send "online" status if not typing anymore
+        if (socket->state() == QAbstractSocket::ConnectedState) {
+            Message onlineMsg(username, "", Message::Status);
+            onlineMsg.text = "online";
+            QByteArray data = onlineMsg.toBinary();
+            QByteArray packet;
+            QDataStream out(&packet, QIODevice::WriteOnly);
+            out << (quint32)data.size();
+            packet.append(data);
+            socket->write(packet);
+            socket->flush();
+        }
+    });
+
+    afkTimer = new QTimer(this);
+    afkTimer->setSingleShot(true);
+    connect(afkTimer, &QTimer::timeout, this, [this]() {
+        // Send "afk" status
+        if (socket->state() == QAbstractSocket::ConnectedState) {
+            Message afkMsg(username, "", Message::Status);
+            afkMsg.text = "afk";
+            QByteArray data = afkMsg.toBinary();
+            QByteArray packet;
+            QDataStream out(&packet, QIODevice::WriteOnly);
+            out << (quint32)data.size();
+            packet.append(data);
+            socket->write(packet);
+            socket->flush();
+        }
+    });
 }
 
 MainWindow::~MainWindow() {}
@@ -155,6 +194,8 @@ void MainWindow::onSendClicked()
     socket->write(packet);
     socket->flush();
     messageInput->clear();
+
+    afkTimer->start(60000); // Reset AFK timer on send
 }
 
 void MainWindow::onReadyRead()
@@ -178,8 +219,18 @@ void MainWindow::onReadyRead()
         {
             QStringList users = msg.text.mid(QString("USERLIST|").length()).split(",", Qt::SkipEmptyParts);
             userList->clear();
-            if (!users.isEmpty() && !(users.size() == 1 && users[0].isEmpty()))
-                userList->addItems(users);
+            for (const QString &entry : users) {
+                QStringList parts = entry.split("|");
+                QString uname = parts.value(0);
+                QString status = parts.value(1, "online"); // default to online
+
+                QColor color = Qt::green;
+                if (status == "afk") color = QColor("#FFD600"); // yellow
+                else if (status == "typing") color = QColor("#2196F3"); // blue
+
+                QListWidgetItem *item = new QListWidgetItem(statusIcon(color), uname);
+                userList->addItem(item);
+            }
         }
         else if (msg.type == Message::System)
         {
@@ -217,4 +268,16 @@ QString MainWindow::sanitizeHtml(const QString& input) {
     safe.replace("&lt;br&gt;", "<br>", Qt::CaseInsensitive);
 
     return safe;
+}
+
+// Helper to create a colored circle icon for status
+QIcon MainWindow::statusIcon(const QColor &color) {
+    QPixmap pix(12, 12);
+    pix.fill(Qt::transparent);
+    QPainter p(&pix);
+    p.setRenderHint(QPainter::Antialiasing);
+    p.setBrush(color);
+    p.setPen(Qt::NoPen);
+    p.drawEllipse(0, 0, 12, 12);
+    return QIcon(pix);
 }
