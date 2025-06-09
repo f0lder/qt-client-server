@@ -5,6 +5,11 @@ Aplicația permite mai multor utilizatori să comunice în timp real, să vadă 
 
 ---
 
+## Pentru binare precompilate
+
+Binare precompilate sunt in tabul de Actions pentru Windows si Linux
+
+__
 ## Cum a fost creat proiectul
 
 Proiectul a fost dezvoltat pornind de la zero, folosind Qt Creator și CMake pentru build.  
