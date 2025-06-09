@@ -74,4 +74,5 @@ A fost realizat direct cu CMake, in functie de setup trebuie modificat `CMAKE_PR
 ---
 
 **Autor:**  
-Proiect realizat ca exemplu de aplicație client-server cu Qt.
+Proiect realizat ca proiect pentur Materia Tehnologii Multimedia
+Ursan Bogdan - Gabriel
