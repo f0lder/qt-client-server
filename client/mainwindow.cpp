@@ -4,6 +4,8 @@
 #include <QLabel>
 #include <QDialogButtonBox>
 #include <QDebug>
+#include <QTimer>
+
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), socket(new QTcpSocket(this)), isConnectedToChat(false)
@@ -29,11 +31,14 @@ MainWindow::MainWindow(QWidget *parent)
     inputDialog.setCancelButtonText("Continue with Anonymous");
 
     int result = inputDialog.exec();
-    if (result == QDialog::Accepted) {
+    if (result == QDialog::Accepted)
+    {
         username = inputDialog.textValue();
         if (username.isEmpty())
             username = "Anonymous";
-    } else {
+    }
+    else
+    {
         username = "Anonymous";
     }
 
@@ -69,7 +74,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     socket->connectToHost("127.0.0.1", 12345);
 
-    connect(socket, &QTcpSocket::connected, this, [this]() {
+    // interesant ca connected este un slot, in continuare al folosit o functie lambda pentru a trimite un mesaj de inregistrare
+    connect(socket, &QTcpSocket::connected, this, [this]()
+            {
         qDebug() << "[Client] Socket connected, sending registration message";
         Message regMsg(username, "", Message::Registration);
         QByteArray regData = regMsg.toBinary();
@@ -79,19 +86,31 @@ MainWindow::MainWindow(QWidget *parent)
         regPacket.append(regData);
         socket->write(regPacket);
         socket->flush();
-        qDebug() << "[Client] Registration message sent, bytes:" << regPacket.size();
-    });
+        qDebug() << "[Client] Registration message sent, bytes:" << regPacket.size(); });
 
     // Connect signals and slots (only once)
     connect(sendButton, &QPushButton::clicked, this, &MainWindow::onSendClicked);
     connect(messageInput, &QLineEdit::returnPressed, this, &MainWindow::onSendClicked);
     connect(socket, &QTcpSocket::readyRead, this, &MainWindow::onReadyRead);
     connect(clearChatButton, &QPushButton::clicked, chatBox, &QTextEdit::clear);
-    connect(socket, &QTcpSocket::connected, this, [](){ qDebug() << "[Client] Socket connected"; });
-    connect(socket, &QTcpSocket::disconnected, this, [](){ qDebug() << "[Client] Socket disconnected"; });
-    connect(socket, &QTcpSocket::errorOccurred, this, [](QAbstractSocket::SocketError err){
-        qDebug() << "[Client] Socket error:" << err;
-    });
+
+    // Handle typing indication
+    connect(messageInput, &QLineEdit::textEdited, this, [this](const QString &text)
+            {
+        if (text.startsWith('/')) return; // Don't send typing for commands
+        if (socket->state() == QAbstractSocket::ConnectedState) {
+            Message typingMsg(username, "", Message::Typing);
+            QByteArray data = typingMsg.toBinary();
+            QByteArray packet;
+            QDataStream out(&packet, QIODevice::WriteOnly);
+            out << (quint32)data.size();
+            packet.append(data);
+            socket->write(packet);
+            socket->flush();
+        } });
+
+    typingLabel = new QLabel(this);
+    leftLayout->addWidget(typingLabel);
 }
 
 MainWindow::~MainWindow() {}
@@ -103,7 +122,8 @@ void MainWindow::onSendClicked()
         return;
 
     // Handle client-side commands
-    if (messageText == "/help") {
+    if (messageText == "/help")
+    {
         chatBox->append("<i>Available commands:</i>");
         chatBox->append("<i>/help - Show this help message (client-side only)</i>");
         chatBox->append("<i>/clear - Clear the chat window (client-side only)</i>");
@@ -111,7 +131,8 @@ void MainWindow::onSendClicked()
         messageInput->clear();
         return;
     }
-    if (messageText == "/clear") {
+    if (messageText == "/clear")
+    {
         chatBox->clear();
         messageInput->clear();
         return;
@@ -156,8 +177,16 @@ void MainWindow::onReadyRead()
         else if (msg.type == Message::System)
         {
             chatBox->append(QString("<i>[%1] %2</i>")
-                .arg(msg.timestamp.toString("hh:mm:ss"))
-                .arg(msg.text.toHtmlEscaped()));
+                                .arg(msg.timestamp.toString("hh:mm:ss"))
+                                .arg(msg.text.toHtmlEscaped()));
+        }
+        else if (msg.type == Message::Typing)
+        {
+            // Show typing indicator (e.g., in the window title or a label)
+            typingLabel->setText(QString("%1 is typing...").arg(msg.username));
+            // Hide after a short delay
+            QTimer::singleShot(1500, this, [this]()
+                               { typingLabel->clear(); });
         }
         else
         {

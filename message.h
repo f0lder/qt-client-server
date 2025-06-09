@@ -10,8 +10,8 @@ public:
         Text = 0,
         Registration = 1,
         Command = 2,
-        System = 3
-        // Add more types as needed
+        System = 3,
+        Typing = 4
     };
 
     QString username;

@@ -13,7 +13,7 @@ ChatServer::ChatServer(QObject *parent) : QTcpServer(parent)
 }
 
 // Track usernames for each client
-static QMap<QTcpSocket*, QString> usernames;
+static QMap<QTcpSocket *, QString> usernames;
 
 void ChatServer::incomingConnection(qintptr socketDescriptor)
 {
@@ -22,7 +22,8 @@ void ChatServer::incomingConnection(qintptr socketDescriptor)
     clients.append(clientSocket);
 
     connect(clientSocket, &QTcpSocket::readyRead, this, &ChatServer::readClient);
-    connect(clientSocket, &QTcpSocket::disconnected, [this, clientSocket]() {
+    connect(clientSocket, &QTcpSocket::disconnected, [this, clientSocket]()
+            {
         clients.removeAll(clientSocket);
         bool wasRegistered = usernames.contains(clientSocket);
         usernames.remove(clientSocket);
@@ -46,8 +47,7 @@ void ChatServer::incomingConnection(qintptr socketDescriptor)
         }
 
         clientSocket->deleteLater();
-        qDebug() << "[Server] Client disconnected";
-    });
+        qDebug() << "[Server] Client disconnected"; });
 
     qDebug() << "[Server] New client connected:" << socketDescriptor;
 }
@@ -56,7 +56,8 @@ void ChatServer::incomingConnection(qintptr socketDescriptor)
 void ChatServer::broadcastUserList()
 {
     QStringList userNames;
-    for (QTcpSocket* c : clients) {
+    for (QTcpSocket *c : clients)
+    {
         if (usernames.contains(c))
             userNames << usernames.value(c, "Anonymous");
     }
@@ -78,18 +79,21 @@ void ChatServer::broadcastUserList()
 void ChatServer::readClient()
 {
     QTcpSocket *client = qobject_cast<QTcpSocket *>(sender());
-    static QMap<QTcpSocket*, QByteArray> buffers;
+    static QMap<QTcpSocket *, QByteArray> buffers;
 
     QByteArray incoming = client->readAll();
     qDebug() << "[Server] Read" << incoming.size() << "bytes from client" << client;
-    if (incoming.isEmpty()) {
+    if (incoming.isEmpty())
+    {
         qDebug() << "[Server] No data received, client may have disconnected.";
     }
     buffers[client].append(incoming);
     qDebug() << "[Server] Buffer size for client" << client << ":" << buffers[client].size();
 
-    while (true) {
-        if (buffers[client].size() < 4) {
+    while (true)
+    {
+        if (buffers[client].size() < 4)
+        {
             qDebug() << "[Server] Not enough data for size prefix, waiting for more.";
             break;
         }
@@ -97,7 +101,8 @@ void ChatServer::readClient()
         quint32 msgSize;
         in >> msgSize;
         qDebug() << "[Server] Next message size:" << msgSize << "Buffer size:" << buffers[client].size();
-        if (buffers[client].size() < 4 + msgSize) {
+        if (buffers[client].size() < 4 + msgSize)
+        {
             qDebug() << "[Server] Not enough data for full message, waiting for more.";
             break;
         }
@@ -110,8 +115,10 @@ void ChatServer::readClient()
                  << "text:" << msg.text;
 
         // Registration logic
-        if (!usernames.contains(client)) {
-            if (msg.type == Message::Registration) {
+        if (!usernames.contains(client))
+        {
+            if (msg.type == Message::Registration)
+            {
                 usernames[client] = msg.username;
                 qDebug() << "[Server] Registered new user:" << msg.username;
 
@@ -130,7 +137,9 @@ void ChatServer::readClient()
                 sendToAllClients(packet);
 
                 broadcastUserList();
-            } else {
+            }
+            else
+            {
                 qDebug() << "[Server] Ignored non-registration message from unregistered client. Type:" << msg.type;
             }
             // Remove processed bytes
@@ -139,7 +148,8 @@ void ChatServer::readClient()
         }
 
         // Only process chat messages from registered users
-        if (msg.type == Message::Text) {
+        if (msg.type == Message::Text)
+        {
             qDebug() << "[Server] Received message from" << msg.username << ":" << msg.text;
 
             QByteArray packet;
@@ -147,7 +157,27 @@ void ChatServer::readClient()
             out << (quint32)msgData.size();
             packet.append(msgData);
             sendToAllClients(packet);
-        } else {
+        }
+        else if (msg.type == Message::Typing)
+        {
+            qDebug() << "[Server] Typing notification from" << msg.username;
+            QByteArray packet;
+            QDataStream out(&packet, QIODevice::WriteOnly);
+            out << (quint32)msgData.size();
+            packet.append(msgData);
+            // Broadcast to all except the sender
+            for (QTcpSocket *c : clients)
+            {
+                if (c != client && usernames.contains(c))
+                {
+                    c->write(packet);
+                }
+            }
+            buffers[client] = buffers[client].mid(4 + msgSize);
+            continue;
+        }
+        else
+        {
             qDebug() << "[Server] Ignored non-text message from" << msg.username << " of type " << msg.type;
         }
 
@@ -157,13 +187,17 @@ void ChatServer::readClient()
     }
 }
 
-void ChatServer::sendToAllClients(const QByteArray& packet)
+void ChatServer::sendToAllClients(const QByteArray &packet)
 {
-    for (QTcpSocket *c : clients) {
-        if (usernames.contains(c)) { // Only send to registered clients
+    for (QTcpSocket *c : clients)
+    {
+        if (usernames.contains(c))
+        { // Only send to registered clients
             c->write(packet);
             qDebug() << "[Server] Sent packet to client" << c;
-        } else {
+        }
+        else
+        {
             qDebug() << "[Server] Skipped sending to unregistered client" << c;
         }
     }
