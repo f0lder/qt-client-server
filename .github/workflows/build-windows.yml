@@ -1,24 +1,26 @@
-name: Build and Release Windows
+name: release-windows
 
 on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
 
 jobs:
-  build:
+  build_release:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
-      - name: Install Qt and dependencies
+      - name: Install Qt
         uses: jurplel/install-qt-action@v3
         with:
           version: '6.6.0'
           arch: win64_mingw
 
-      - name: Build
+      - name: Build Windows binaries
         run: |
           cmake -B build -G "MinGW Makefiles"
           cmake --build build
@@ -29,13 +31,27 @@ jobs:
           & "$Env:Qt6_DIR/bin/windeployqt.exe" bin\MyQtApp.exe
           & "$Env:Qt6_DIR/bin/windeployqt.exe" bin\ChatServer.exe
 
-      - name: Zip deployment folder
+      - name: Zip Windows deployment
         run: |
-          Compress-Archive -Path bin\*,*.dll,*.exe -DestinationPath deploy-windows.zip
+          Compress-Archive -Path bin\*,*.dll,*.exe -DestinationPath release-windows.zip
 
-      - name: Upload Release Asset
-        uses: softprops/action-gh-release@v2
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
         with:
-          files: deploy-windows.zip
+          draft: false
+          prerelease: false
+          release_name: Release ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Windows artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: release-windows.zip
+          asset_name: release-windows.zip
+          asset_content_type: application/zip
