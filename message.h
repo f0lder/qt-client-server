@@ -28,17 +28,6 @@ public:
         return QString::number(type) + "|" + username + "|" + timestamp.toString(Qt::ISODate) + "|" + text + "\n";
     }
 
-    static Message deserialize(const QString& data) {
-        QStringList parts = data.split("|");
-        if (parts.size() < 4) return {};
-        Message msg;
-        msg.type = static_cast<Type>(parts[0].toInt());
-        msg.username = parts[1];
-        msg.timestamp = QDateTime::fromString(parts[2], Qt::ISODate);
-        msg.text = parts.mid(3).join("|").trimmed();
-        return msg;
-    }
-
     // Binary serialization
     QByteArray toBinary() const {
         QByteArray arr;
