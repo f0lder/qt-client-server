@@ -1,9 +1,11 @@
 # Chat Qt Client-Server
 
 Acest proiect este o aplicație de chat client-server realizată în C++ folosind framework-ul Qt 6.  
-Aplicația permite mai multor utilizatori să comunice în timp real, să vadă cine este online, să folosească comenzi speciale și să primească notificări de tip "user is typing".
+Aplicația permite mai multor utilizatori să comunice în timp real, să vadă cine este online, să folosească comenzi speciale și să primească notificări de tip "user is typing", "afk".
 
 ---
+
+![Captură de ecran a aplicației](images/ss.png)
 
 ## Pentru binare precompilate
 
@@ -73,6 +75,10 @@ A fost realizat direct cu CMake, in functie de setup trebuie modificat `CMAKE_PR
 
 ---
 
+## Ce ar putea fi imbunatatit
+
+
 **Autor:**  
 Proiect realizat ca proiect pentur Materia Tehnologii Multimedia
+
 Ursan Bogdan - Gabriel
