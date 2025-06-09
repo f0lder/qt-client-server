@@ -1,4 +1,4 @@
-name: Build and Deploy Windows
+name: Build and Release Windows
 
 on:
   push:
@@ -31,10 +31,11 @@ jobs:
 
       - name: Zip deployment folder
         run: |
-          Compress-Archive -Path bin\* -DestinationPath chat-windows-deploy.zip
+          Compress-Archive -Path bin\*,*.dll,*.exe -DestinationPath deploy.zip
 
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
         with:
-          name: windows-deploy
-          path: chat-windows-deploy.zip
+          files: deploy.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

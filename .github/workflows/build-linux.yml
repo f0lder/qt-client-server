@@ -1,4 +1,4 @@
-name: Build and Deploy Linux
+name: Build and Release Linux
 
 on:
   push:
@@ -37,12 +37,11 @@ jobs:
 
       - name: Zip deployment folder
         run: |
-          zip -r chat-linux-deploy.zip bin/
+          zip -r deploy.zip bin/ *.AppImage
 
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
         with:
-          name: linux-deploy
-          path: |
-            *.AppImage
-            chat-linux-deploy.zip
+          files: deploy.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
