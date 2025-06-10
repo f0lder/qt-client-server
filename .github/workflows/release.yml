@@ -63,6 +63,8 @@ jobs:
         run: |
           cmake -B build
           cmake --build build
+          mkdir -p release
+          cp -r bin release/linux-bin
 
       - name: Download linuxdeployqt
         run: |
@@ -79,13 +81,13 @@ jobs:
 
       - name: Zip Linux deployment
         run: |
-          zip -r linux-deploy.zip bin/ *.AppImage
+          zip -r release/linux-deploy.zip bin/ *.AppImage
 
       - name: Download Windows artifact
         uses: actions/download-artifact@v4
         with:
           name: windows-deploy
-          path: .
+          path: release
 
       - name: Create or Update Release
         id: create_release
@@ -104,7 +106,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: linux-deploy.zip
+          asset_path: release/linux-deploy.zip
           asset_name: linux-deploy.zip
           asset_content_type: application/zip
 
@@ -114,6 +116,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: windows-deploy.zip
+          asset_path: release/windows-deploy.zip
           asset_name: windows-deploy.zip
           asset_content_type: application/zip
