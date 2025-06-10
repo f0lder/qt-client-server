@@ -19,17 +19,12 @@ jobs:
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
         with:
-          version: '6.9.1'
+          version: '6.6.0'
           arch: win64_mingw
-
-      - name: Clean build directory
-        run: |
-          Remove-Item -Recurse -Force build -ErrorAction SilentlyContinue
-          New-Item -ItemType Directory -Path build
 
       - name: Build Windows binaries
         run: |
-          cmake -B build -G "MinGW Makefiles" -DCMAKE_EXE_LINKER_FLAGS="-municode"
+          cmake -B build -G "MinGW Makefiles"
           cmake --build build
 
       - name: Deploy Qt dependencies (windeployqt)
@@ -63,11 +58,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y qt6-base-dev qt6-base-dev-tools cmake g++ wget patchelf zip
-
-      - name: Clean build directory
-        run: |
-          if [ -d "build" ]; then rm -rf build; fi
-          mkdir build
 
       - name: Build Linux binaries
         run: |
