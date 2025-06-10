@@ -7,9 +7,5 @@ set(CMAKE_AUTOMOC ON)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
-if(MINGW)
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -municode")
-endif()
-
 add_subdirectory(server)
 add_subdirectory(client)

@@ -22,6 +22,11 @@ jobs:
           version: '6.9.1'
           arch: win64_mingw
 
+      - name: Clean build directory
+        run: |
+          if exist build rmdir /s /q build
+          mkdir build
+
       - name: Build Windows binaries
         run: |
           cmake -B build -G "MinGW Makefiles"
@@ -58,6 +63,11 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y qt6-base-dev qt6-base-dev-tools cmake g++ wget patchelf zip
+
+      - name: Clean build directory
+        run: |
+          if [ -d "build" ]; then rm -rf build; fi
+          mkdir build
 
       - name: Build Linux binaries
         run: |
